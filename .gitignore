@@ -1,3 +1,6 @@
+# folder
 .vs
+x64
 
-*.vcproj
+*.props
+*.vcxproj

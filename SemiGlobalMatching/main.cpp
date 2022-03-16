@@ -10,11 +10,11 @@ using namespace std::chrono;
 
 // opencv library
 #include <opencv2/opencv.hpp>
-#ifdef _DEBUG
-#pragma comment(lib,"opencv_world310d.lib")
-#else
-#pragma comment(lib,"opencv_world310.lib")
-#endif
+//#ifdef _DEBUG
+//#pragma comment(lib,"opencv_world310d.lib")
+//#else
+//#pragma comment(lib,"opencv_world310.lib")
+//#endif
 
 /**
  * \brief
