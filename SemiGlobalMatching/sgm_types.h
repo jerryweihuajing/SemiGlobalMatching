@@ -1,4 +1,4 @@
-/* -*-c++-*- SemiGlobalMatching - Copyright (C) 2020.
+ï»¿/* -*-c++-*- SemiGlobalMatching - Copyright (C) 2020.
 * Author	: Yingsong Li(Ethan Li) <ethan.li.whu@gmail.com>
 * https://github.com/ethan-li-coding/SemiGlobalMatching
 * Describe	: header of sgm_types
@@ -9,17 +9,17 @@
 #include <cstdint>
 #include <limits>
 
-/** \brief floatÎŞĞ§Öµ */
+/** \brief floatæ— æ•ˆå€¼ */
 constexpr auto Invalid_Float = std::numeric_limits<float>::infinity();
 
-/** \brief »ù´¡ÀàĞÍ±ğÃû */
-typedef int8_t			sint8;		// ÓĞ·ûºÅ8Î»ÕûÊı
-typedef uint8_t			uint8;		// ÎŞ·ûºÅ8Î»ÕûÊı
-typedef int16_t			sint16;		// ÓĞ·ûºÅ16Î»ÕûÊı
-typedef uint16_t		uint16;		// ÎŞ·ûºÅ16Î»ÕûÊı
-typedef int32_t			sint32;		// ÓĞ·ûºÅ32Î»ÕûÊı
-typedef uint32_t		uint32;		// ÎŞ·ûºÅ32Î»ÕûÊı
-typedef int64_t			sint64;		// ÓĞ·ûºÅ64Î»ÕûÊı
-typedef uint64_t		uint64;		// ÎŞ·ûºÅ64Î»ÕûÊı
-typedef float			float32;	// µ¥¾«¶È¸¡µã
-typedef double			float64;	// Ë«¾«¶È¸¡µã
+/** \brief åŸºç¡€ç±»å‹åˆ«å */
+typedef int8_t			sint8;		// æœ‰ç¬¦å·8ä½æ•´æ•°
+typedef uint8_t			uint8;		// æ— ç¬¦å·8ä½æ•´æ•°
+typedef int16_t			sint16;		// æœ‰ç¬¦å·16ä½æ•´æ•°
+typedef uint16_t		uint16;		// æ— ç¬¦å·16ä½æ•´æ•°
+typedef int32_t			sint32;		// æœ‰ç¬¦å·32ä½æ•´æ•°
+typedef uint32_t		uint32;		// æ— ç¬¦å·32ä½æ•´æ•°
+typedef int64_t			sint64;		// æœ‰ç¬¦å·64ä½æ•´æ•°
+typedef uint64_t		uint64;		// æ— ç¬¦å·64ä½æ•´æ•°
+typedef float			float32;	// å•ç²¾åº¦æµ®ç‚¹
+typedef double			float64;	// åŒç²¾åº¦æµ®ç‚¹

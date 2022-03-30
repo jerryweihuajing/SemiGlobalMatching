@@ -6,7 +6,6 @@
 #include "stdafx.h"
 #include "SemiGlobalMatching.h"
 #include <chrono>
-using namespace std::chrono;
 
 // opencv library
 #include <opencv2/opencv.hpp>
@@ -15,6 +14,17 @@ using namespace std::chrono;
 //#else
 //#pragma comment(lib,"opencv_world310.lib")
 //#endif
+
+using namespace std::chrono;
+using namespace std;
+using namespace cv;
+
+/*显示视差图*/
+void ShowDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& name);
+/*保存视差图*/
+void SaveDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
+/*保存视差点云*/
+void SaveDisparityCloud(const uint8* img_bytes, const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
 
 /**
  * \brief
@@ -33,8 +43,14 @@ int main(int argv, char** argc)
 
     //···············································································//
     // 读取影像
-    std::string path_left = argc[1];
-    std::string path_right = argc[2];
+    std::string folder_path = "D:/Code/GitHub/3irobotix/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    std::string image_name = "x-408_y0295_z0030_roll0000_pitch0000_yaw0000";
+
+    std::string image_name_left = image_name + "_left.bmp";
+    std::string image_name_right = image_name + "_right.bmp";
+
+    std::string path_left = folder_path + '/' + image_name_left;
+    std::string path_right = folder_path + '/' + image_name_right;
 
     cv::Mat img_left_c = cv::imread(path_left, cv::IMREAD_COLOR);
     cv::Mat img_left = cv::imread(path_left, cv::IMREAD_GRAYSCALE);
@@ -57,10 +73,18 @@ int main(int argv, char** argc)
     // 左右影像的灰度数据
     auto bytes_left = new uint8[width * height];
     auto bytes_right = new uint8[width * height];
+
+    // 左图的彩色图数据
+    auto bytes_left_c = new uint8[width * height * 3];
+
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             bytes_left[i * width + j] = img_left.at<uint8>(i, j);
             bytes_right[i * width + j] = img_right.at<uint8>(i, j);
+
+            bytes_left_c[i * 3 * width + 3 * j] = img_left_c.at<cv::Vec3b>(i, j)[0];
+            bytes_left_c[i * 3 * width + 3 * j + 1] = img_left_c.at<cv::Vec3b>(i, j)[1];
+            bytes_left_c[i * 3 * width + 3 * j + 2] = img_left_c.at<cv::Vec3b>(i, j)[2];
         }
     }
 
@@ -80,7 +104,7 @@ int main(int argv, char** argc)
     sgm_option.lrcheck_thres = 1.0f;
     // 唯一性约束
     sgm_option.is_check_unique = true;
-    sgm_option.uniqueness_ratio = 0.99;
+    sgm_option.uniqueness_ratio = (float)0.99;
     // 剔除小连通区
     sgm_option.is_remove_speckles = true;
     sgm_option.min_speckle_aera = 50;
@@ -123,42 +147,12 @@ int main(int argv, char** argc)
     printf("\nSGM Matching...Done! Timing :   %lf s\n", tt.count() / 1000.0);
 
     //···············································································//
-	// 显示视差图
-    // 注意，计算点云不能用disp_mat的数据，它是用来显示和保存结果用的。计算点云要用上面的disparity数组里的数据，是子像素浮点数
-    cv::Mat disp_mat = cv::Mat(height, width, CV_8UC1);
-    float min_disp = width, max_disp = -width;
-    for (sint32 i = 0; i < height; i++) {
-        for (sint32 j = 0; j < width; j++) {
-            const float32 disp = disparity[i * width + j];
-            if (disp != Invalid_Float) {
-                min_disp = std::min(min_disp, disp);
-                max_disp = std::max(max_disp, disp);
-            }
-        }
-    }
-    for (sint32 i = 0; i < height; i++) {
-        for (sint32 j = 0; j < width; j++) {
-            const float32 disp = disparity[i * width + j];
-            if (disp == Invalid_Float) {
-                disp_mat.data[i * width + j] = 0;
-            }
-            else {
-                disp_mat.data[i * width + j] = static_cast<uchar>((disp - min_disp) / (max_disp - min_disp) * 255);
-            }
-        }
-    }
-
-    cv::imshow("视差图", disp_mat);
-    cv::Mat disp_color;
-    applyColorMap(disp_mat, disp_color, cv::COLORMAP_JET);
-    cv::imshow("视差图-伪彩", disp_color);
-
-    // 保存结果
-    std::string disp_map_path = argc[1]; disp_map_path += ".d.png";
-    std::string disp_color_map_path = argc[1]; disp_color_map_path += ".c.png";
-    cv::imwrite(disp_map_path, disp_mat);
-    cv::imwrite(disp_color_map_path, disp_color);
-
+    // 显示视差图
+    //ShowDisparityMap(disparity, width, height, "disp-left");
+    // 保存视差图
+    SaveDisparityMap(disparity, width, height, path_left);
+    // 保存视差点云
+    SaveDisparityCloud(bytes_left_c, disparity, width, height, path_left);
 
     cv::waitKey(0);
 
@@ -175,3 +169,110 @@ int main(int argv, char** argc)
     return 0;
 }
 
+
+void ShowDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& name)
+{
+    // 显示视差图
+    const cv::Mat disp_mat = cv::Mat(height, width, CV_8UC1);
+    float32 min_disp = float32(width), max_disp = -float32(width);
+    for (sint32 i = 0; i < height; i++) {
+        for (sint32 j = 0; j < width; j++) {
+            const float32 disp = abs(disp_map[i * width + j]);
+            if (disp != Invalid_Float) {
+                min_disp = std::min(min_disp, disp);
+                max_disp = std::max(max_disp, disp);
+            }
+        }
+    }
+    for (sint32 i = 0; i < height; i++) {
+        for (sint32 j = 0; j < width; j++) {
+            const float32 disp = abs(disp_map[i * width + j]);
+            if (disp == Invalid_Float) {
+                disp_mat.data[i * width + j] = 0;
+            }
+            else {
+                disp_mat.data[i * width + j] = static_cast<uchar>((disp - min_disp) / (max_disp - min_disp) * 255);
+            }
+        }
+    }
+
+    cv::imshow(name, disp_mat);
+    cv::Mat disp_color;
+    applyColorMap(disp_mat, disp_color, cv::COLORMAP_JET);
+    cv::imshow(name + "-color", disp_color);
+
+}
+
+void SaveDisparityMap(const float32* disp_map,
+    const sint32& width,
+    const sint32& height,
+    const std::string& path)
+{
+    // 保存视差图
+    const cv::Mat disp_mat = cv::Mat(height, width, CV_8UC1);
+    float32 min_disp = float32(width), max_disp = -float32(width);
+    for (sint32 i = 0; i < height; i++) {
+        for (sint32 j = 0; j < width; j++) {
+            const float32 disp = abs(disp_map[i * width + j]);
+            if (disp != Invalid_Float) {
+                min_disp = std::min(min_disp, disp);
+                max_disp = std::max(max_disp, disp);
+            }
+        }
+    }
+    for (sint32 i = 0; i < height; i++) {
+        for (sint32 j = 0; j < width; j++) {
+            const float32 disp = abs(disp_map[i * width + j]);
+            if (disp == Invalid_Float) {
+                disp_mat.data[i * width + j] = 0;
+            }
+            else {
+                disp_mat.data[i * width + j] = static_cast<uchar>((disp - min_disp) / (max_disp - min_disp) * 255);
+            }
+        }
+    }
+    std::string temp = path;
+    cv::imwrite(temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff"), disp_mat);
+
+    //cv::imwrite(path + "-d.png", disp_mat);
+    //cv::Mat disp_color;
+    //applyColorMap(disp_mat, disp_color, cv::COLORMAP_JET);
+    //cv::imwrite(path + "-c.png", disp_color);
+    //cv::imwrite(temp.replace(temp.find("left.bmp"), 8, "disp_color_ADC.png"), disp_color);
+}
+
+
+void SaveDisparityCloud(const uint8* img_bytes,
+    const float32* disp_map, 
+    const sint32& width,
+    const sint32& height, 
+    const std::string& path)
+{
+
+    // 保存视差点云(x,y,disp,r,g,b)
+    FILE* fp_disp_cloud = nullptr;
+    std::string temp = path;
+    fopen_s(&fp_disp_cloud, temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt").c_str(), "w");
+
+    if (fp_disp_cloud) {
+        for (sint32 i = 0; i < height; i++) {
+            for (sint32 j = 0; j < width; j++) {
+                const float32 disp = abs(disp_map[i * width + j]);
+                if (disp == Invalid_Float) {
+                    continue;
+                }
+               /* printf("%f %f %f %d %d %d\n", float32(j), float32(i),
+                    disp, img_bytes[i * width * 3 + 3 * j + 2], img_bytes[i * width * 3 + 3 * j + 1], img_bytes[i * width * 3 + 3 * j]);*/
+
+                fprintf_s(fp_disp_cloud, "%f %f %f %d %d %d\n", 
+                    float32(j), 
+                    float32(i),
+                    disp, 
+                    img_bytes[i * width * 3 + 3 * j + 2], 
+                    img_bytes[i * width * 3 + 3 * j + 1], 
+                    img_bytes[i * width * 3 + 3 * j]);
+            }
+        }
+        fclose(fp_disp_cloud);
+    }
+}

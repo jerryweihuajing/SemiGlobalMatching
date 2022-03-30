@@ -564,7 +564,7 @@ void sgm_util::RemoveSpeckles(float32* disparity_map, const sint32& width, const
 			uint32 next = 0;
 			do {
 				// 广度优先遍历区域跟踪	
-				next = vec.size();
+				next = (uint32)vec.size();
 				for (uint32 k = cur; k < next; k++) {
 					const auto& pixel = vec[k];
 					const sint32 row = pixel.first;

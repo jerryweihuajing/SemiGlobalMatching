@@ -1,6 +1,7 @@
 # folder
 .vs
 x64
+Data
 
 *.props
 *.vcxproj
