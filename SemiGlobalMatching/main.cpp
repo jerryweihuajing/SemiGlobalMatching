@@ -44,7 +44,7 @@ int main(int argv, char** argc)
     //，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，，//
     // 響函唹��
     std::string folder_path = "D:/Code/GitHub/3irobotix/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
-    std::string image_name = "x-408_y0295_z0030_roll0000_pitch0000_yaw0000";
+    std::string image_name = "x-408_y0295_z0030_roll0000_pitch0000_yaw0180";
 
     std::string image_name_left = image_name + "_left.bmp";
     std::string image_name_right = image_name + "_right.bmp";
