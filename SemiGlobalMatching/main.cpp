@@ -26,25 +26,66 @@ void SaveDisparityMap(const float32* disp_map, const sint32& width, const sint32
 /*保存视差点云*/
 void SaveDisparityCloud(const uint8* img_bytes, const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
 
-/**
- * \brief
- * \param argv 3
- * \param argc argc[1]:左影像路径 argc[2]: 右影像路径 argc[3]: 最小视差[可选，默认0] argc[4]: 最大视差[可选，默认64]
- * \param eg. ..\Data\cone\im2.png ..\Data\cone\im6.png 0 64
- * \param eg. ..\Data\Reindeer\view1.png ..\Data\Reindeer\view5.png 0 128
- * \return
- */
-int main(int argv, char** argc)
-{
-    if (argv < 3) {
-        std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
-        return -1;
-    }
+//------------------------------------------------------------------------------
+/*
+Calculate the path of all the files under the path
 
-    //···············································································//
-    // 读取影像
-    std::string folder_path = "D:/Code/GitHub/3irobotix/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
-    std::string image_name = "x-408_y0295_z0030_roll0000_pitch0000_yaw0180";
+Args:
+    folder_path: folder path of images
+
+Returns:
+    image files
+*/
+vector<string> VectorFilesPath(string& folder_path) {
+
+    //final result
+    vector<string> total_files;
+
+    //File handle for later lookup
+    intptr_t hFile = 0;
+
+    //document information
+    struct _finddata_t fileinfo;
+
+    //temporary variable
+    string path;
+
+    //the first file is found
+    if ((hFile = _findfirst(path.assign(folder_path).append("\\*").c_str(), &fileinfo)) != -1) {
+
+        do {
+            //condition: folder
+            if ((fileinfo.attrib & _A_SUBDIR)) {
+
+                if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0) {
+
+                    //files which are from branch folder
+                    vector<string> branch_files = VectorFilesPath(path.assign(folder_path).append("\\").append(fileinfo.name));
+
+                    //collect them
+                    for (int k = 0; k < branch_files.size(); k++) {
+
+                        total_files.push_back(branch_files[k]);
+                    }
+                }
+            }
+            //condition: file
+            else {
+
+                total_files.push_back(path.assign(folder_path).append("/").append(fileinfo.name));
+            }
+        }
+        //able to find other files
+        while (_findnext(hFile, &fileinfo) == 0);
+
+        //end the lookup and close the handle
+        _findclose(hFile);
+    }
+    return total_files;
+}
+
+
+int SGMFromImageName(std::string folder_path, std::string image_name) {
 
     std::string image_name_left = image_name + "_left.bmp";
     std::string image_name_right = image_name + "_right.bmp";
@@ -56,6 +97,8 @@ int main(int argv, char** argc)
     cv::Mat img_left = cv::imread(path_left, cv::IMREAD_GRAYSCALE);
     cv::Mat img_right = cv::imread(path_right, cv::IMREAD_GRAYSCALE);
 
+    //···············································································//
+    // 读取影像
     if (img_left.data == nullptr || img_right.data == nullptr) {
         std::cout << "读取影像失败！" << std::endl;
         return -1;
@@ -64,7 +107,6 @@ int main(int argv, char** argc)
         std::cout << "左右影像尺寸不一致！" << std::endl;
         return -1;
     }
-
 
     //···············································································//
     const sint32 width = static_cast<uint32>(img_left.cols);
@@ -95,8 +137,10 @@ int main(int argv, char** argc)
     // 聚合路径数
     sgm_option.num_paths = 8;
     // 候选视差范围
-    sgm_option.min_disparity = argv < 4 ? 0 : atoi(argc[3]);
-    sgm_option.max_disparity = argv < 5 ? 64 : atoi(argc[4]);
+    //sgm_option.min_disparity = argv < 4 ? 0 : atoi(argc[3]);
+    //sgm_option.max_disparity = argv < 5 ? 64 : atoi(argc[4]);
+    sgm_option.min_disparity = 0;
+    sgm_option.max_disparity = 64;
     // census窗口类型
     sgm_option.census_size = SemiGlobalMatching::Census5x5;
     // 一致性检查
@@ -122,7 +166,7 @@ int main(int argv, char** argc)
 
     //···············································································//
     // 初始化
-	printf("SGM Initializing...\n");
+    printf("SGM Initializing...\n");
     auto start = std::chrono::steady_clock::now();
     if (!sgm.Initialize(width, height, sgm_option)) {
         std::cout << "SGM初始化失败！" << std::endl;
@@ -134,7 +178,7 @@ int main(int argv, char** argc)
 
     //···············································································//
     // 匹配
-	printf("SGM Matching...\n");
+    printf("SGM Matching...\n");
     start = std::chrono::steady_clock::now();
     // disparity数组保存子像素的视差结果
     auto disparity = new float32[uint32(width * height)]();
@@ -164,11 +208,7 @@ int main(int argv, char** argc)
     bytes_left = nullptr;
     delete[] bytes_right;
     bytes_right = nullptr;
-
-    system("pause");
-    return 0;
 }
-
 
 void ShowDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& name)
 {
@@ -275,4 +315,57 @@ void SaveDisparityCloud(const uint8* img_bytes,
         }
         fclose(fp_disp_cloud);
     }
+}
+
+vector<string> split(const string& str, const string& delim) {
+
+    vector<string> res;
+    if ("" == str) return res;
+    //先将要切割的字符串从string类型转换为char*类型  
+    char* strs = new char[str.length() + 1]; //不要忘了  
+    strcpy(strs, str.c_str());
+
+    char* d = new char[delim.length() + 1];
+    strcpy(d, delim.c_str());
+
+    char* p = strtok(strs, d);
+    while (p) {
+        string s = p; //分割得到的字符串转换为string类型  
+        res.push_back(s); //存入结果数组  
+        p = strtok(NULL, d);
+    }
+
+    return res;
+}
+
+/**
+ * \brief
+ * \param argv 3
+ * \param argc argc[1]:左影像路径 argc[2]: 右影像路径 argc[3]: 最小视差[可选，默认0] argc[4]: 最大视差[可选，默认64]
+ * \param eg. ..\Data\cone\im2.png ..\Data\cone\im6.png 0 64
+ * \param eg. ..\Data\Reindeer\view1.png ..\Data\Reindeer\view5.png 0 128
+ * \return
+ */
+int main(int argv, char** argc)
+{
+    //if (argv < 3) {
+    //    std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
+    //    return -1;
+    //}
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
+
+    //SGMFromImageName(folder_path, image_name);
+
+    for (const auto & item : VectorFilesPath(folder_path)) {
+
+        //在string中寻找sub_string
+        if (item.find("left.bmp") != string::npos) {
+        
+            std::cout << split(item, "/").back() << std::endl;
+        }
+    }
+
+    system("pause");
+    return 0;
 }
