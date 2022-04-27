@@ -169,16 +169,34 @@ vector<string> VectorFilesPath(string& folder_path) {
     return total_files;
 }
 
+string DATASETS = "RS";
+//string DATASETS = "UE4";
 
 int SGMFromImageName(std::string folder_path, std::string image_name) {
 
-    std::string image_name_left = image_name + "_left.bmp";
-    std::string image_name_right = image_name + "_right.bmp";
+    cout << image_name << endl;
 
+    std::string image_name_left;
+    std::string image_name_right;
+    std::string image_name_color;
+
+    if (DATASETS == "UE4") {
+
+        image_name_left = image_name + "_left.bmp";
+        image_name_right = image_name + "_right.bmp";
+        image_name_color = image_name + "_left.bmp";
+    }
+    else if (DATASETS == "RS") {
+
+        image_name_left = image_name + "_ir_left.bmp";
+        image_name_right = image_name + "_ir_right.bmp";
+        image_name_color = image_name + "_color.bmp";
+    }
     std::string path_left = folder_path + '/' + image_name_left;
     std::string path_right = folder_path + '/' + image_name_right;
+    std::string path_color = folder_path + '/' + image_name_color;
 
-    cv::Mat img_left_c = cv::imread(path_left, cv::IMREAD_COLOR);
+    cv::Mat img_color = cv::imread(path_color, cv::IMREAD_COLOR);
     cv::Mat img_left = cv::imread(path_left, cv::IMREAD_GRAYSCALE);
     cv::Mat img_right = cv::imread(path_right, cv::IMREAD_GRAYSCALE);
 
@@ -202,16 +220,16 @@ int SGMFromImageName(std::string folder_path, std::string image_name) {
     auto bytes_right = new uint8[width * height];
 
     // 左图的彩色图数据
-    auto bytes_left_c = new uint8[width * height * 3];
+    auto bytes_color = new uint8[width * height * 3];
 
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             bytes_left[i * width + j] = img_left.at<uint8>(i, j);
             bytes_right[i * width + j] = img_right.at<uint8>(i, j);
 
-            bytes_left_c[i * 3 * width + 3 * j] = img_left_c.at<cv::Vec3b>(i, j)[0];
-            bytes_left_c[i * 3 * width + 3 * j + 1] = img_left_c.at<cv::Vec3b>(i, j)[1];
-            bytes_left_c[i * 3 * width + 3 * j + 2] = img_left_c.at<cv::Vec3b>(i, j)[2];
+            bytes_color[i * 3 * width + 3 * j] = img_color.at<cv::Vec3b>(i, j)[0];
+            bytes_color[i * 3 * width + 3 * j + 1] = img_color.at<cv::Vec3b>(i, j)[1];
+            bytes_color[i * 3 * width + 3 * j + 2] = img_color.at<cv::Vec3b>(i, j)[2];
         }
     }
 
@@ -281,7 +299,7 @@ int SGMFromImageName(std::string folder_path, std::string image_name) {
     // 保存视差图
     SaveDisparityMap(disparity, width, height, path_left);
     // 保存视差点云
-    SaveDisparityCloud(bytes_left_c, disparity, width, height, path_left);
+    SaveDisparityCloud(bytes_color, disparity, width, height, path_left);
 
     cv::waitKey(0);
 
@@ -357,8 +375,15 @@ void SaveDisparityMap(const float32* disp_map,
         }
     }
     std::string temp = path;
-    cv::imwrite(temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff"), disp_mat);
+    if (DATASETS == "RS") {
 
+     cv::imwrite(temp.replace(temp.find("ir_left.bmp"), 11, "disp_map_SGM.tiff"), disp_mat);
+    }
+    else if (DATASETS == "UE4") {
+
+        cv::imwrite(temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff"), disp_mat);
+    }
+    
     //cv::imwrite(path + "-d.png", disp_mat);
     //cv::Mat disp_color;
     //applyColorMap(disp_mat, disp_color, cv::COLORMAP_JET);
@@ -377,8 +402,14 @@ void SaveDisparityCloud(const uint8* img_bytes,
     // 保存视差点云(x,y,disp,r,g,b)
     FILE* fp_disp_cloud = nullptr;
     std::string temp = path;
-    fopen_s(&fp_disp_cloud, temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt").c_str(), "w");
+    if (DATASETS == "RS") {
 
+        fopen_s(&fp_disp_cloud, temp.replace(temp.find("ir_left.bmp"), 11, "disp_cloud_SGM.txt").c_str(), "w");
+    }
+    else if(DATASETS == "UE4") {
+
+        fopen_s(&fp_disp_cloud, temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt").c_str(), "w");
+    }
     if (fp_disp_cloud) {
         for (sint32 i = 0; i < height; i++) {
             for (sint32 j = 0; j < width; j++) {
@@ -437,7 +468,9 @@ int main(int argv, char** argc)
     //    std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
     //    return -1;
     //}
-    std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    //std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors/RealSenseTest/Material/Static/IMU Recalibrated";
+
     std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
 
     //SGMFromImageName(folder_path, image_name);
@@ -447,7 +480,7 @@ int main(int argv, char** argc)
         //在string中寻找sub_string
         if (item.find("left.bmp") != string::npos) {
         
-            string this_image_name = strip(split(item, "/").back(), "_left.bmp");
+            string this_image_name = strip(split(item, "/").back(), "ir_left.bmp");
 
             std::cout << this_image_name << std::endl;
             SGMFromImageName(folder_path, this_image_name);
