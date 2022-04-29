@@ -6,6 +6,7 @@
 #include "stdafx.h"
 #include "SemiGlobalMatching.h"
 #include <chrono>
+#include <fstream>  
 
 // opencv library
 #include <opencv2/opencv.hpp>
@@ -19,12 +20,8 @@ using namespace std::chrono;
 using namespace std;
 using namespace cv;
 
-/*显示视差图*/
-void ShowDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& name);
-/*保存视差图*/
-void SaveDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
-/*保存视差点云*/
-void SaveDisparityCloud(const uint8* img_bytes, const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
+std::string DATASETS = "RS";
+//string DATASETS = "UE4";
 
 #define LEFTSTRIP 0
 #define RIGHTSTRIP 1
@@ -111,6 +108,13 @@ std::string rstrip(const std::string& str, const std::string& chars = " ")
     return do_strip(str, RIGHTSTRIP, chars);
 }
 
+/*显示视差图*/
+void ShowDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& name);
+/*保存视差图*/
+void SaveDisparityMap(const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
+/*保存视差点云*/
+void SaveDisparityCloud(const uint8* img_bytes, const float32* disp_map, const sint32& width, const sint32& height, const std::string& path);
+
 //------------------------------------------------------------------------------
 /*
 Calculate the path of all the files under the path
@@ -168,9 +172,6 @@ vector<string> VectorFilesPath(string& folder_path) {
     }
     return total_files;
 }
-
-string DATASETS = "RS";
-//string DATASETS = "UE4";
 
 int SGMFromImageName(std::string folder_path, std::string image_name) {
 
@@ -260,7 +261,7 @@ int SGMFromImageName(std::string folder_path, std::string image_name) {
     sgm_option.p2_init = 150;
     // 视差图填充
     // 视差图填充的结果并不可靠，若工程，不建议填充，若科研，则可填充
-    sgm_option.is_fill_holes = false;
+    sgm_option.is_fill_holes = true;
 
     printf("w = %d, h = %d, d = [%d,%d]\n\n", width, height, sgm_option.min_disparity, sgm_option.max_disparity);
 
@@ -299,7 +300,7 @@ int SGMFromImageName(std::string folder_path, std::string image_name) {
     // 保存视差图
     SaveDisparityMap(disparity, width, height, path_left);
     // 保存视差点云
-    SaveDisparityCloud(bytes_color, disparity, width, height, path_left);
+    //SaveDisparityCloud(bytes_color, disparity, width, height, path_left);
 
     cv::waitKey(0);
 
@@ -351,6 +352,28 @@ void SaveDisparityMap(const float32* disp_map,
     const sint32& height,
     const std::string& path)
 {
+
+    std::string temp;
+    std::string path_disp_map_tiff;
+    std::string path_disp_map_txt;
+
+    if (DATASETS == "RS") {
+
+        temp = path;
+        path_disp_map_tiff = temp.replace(temp.find("ir_left.bmp"), 11, "disp_map_SGM.tiff");
+       
+        temp = path;
+        path_disp_map_txt = temp.replace(temp.find("ir_left.bmp"), 11, "disp_map_SGM.txt");
+    }
+    else if (DATASETS == "UE4") {
+
+        temp = path;
+        path_disp_map_tiff = temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff");
+
+        temp = path;
+        path_disp_map_txt = temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.txt");
+    }
+
     // 保存视差图
     const cv::Mat disp_mat = cv::Mat(height, width, CV_8UC1);
     float32 min_disp = float32(width), max_disp = -float32(width);
@@ -363,6 +386,8 @@ void SaveDisparityMap(const float32* disp_map,
             }
         }
     }
+    ofstream fout(path_disp_map_txt);
+
     for (sint32 i = 0; i < height; i++) {
         for (sint32 j = 0; j < width; j++) {
             const float32 disp = abs(disp_map[i * width + j]);
@@ -370,20 +395,15 @@ void SaveDisparityMap(const float32* disp_map,
                 disp_mat.data[i * width + j] = 0;
             }
             else {
+                fout << disp << " ";
                 disp_mat.data[i * width + j] = static_cast<uchar>((disp - min_disp) / (max_disp - min_disp) * 255);
             }
         }
+        fout << std::endl;
     }
-    std::string temp = path;
-    if (DATASETS == "RS") {
+    fout.close();
+    cv::imwrite(path_disp_map_tiff, disp_mat);
 
-     cv::imwrite(temp.replace(temp.find("ir_left.bmp"), 11, "disp_map_SGM.tiff"), disp_mat);
-    }
-    else if (DATASETS == "UE4") {
-
-        cv::imwrite(temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff"), disp_mat);
-    }
-    
     //cv::imwrite(path + "-d.png", disp_mat);
     //cv::Mat disp_color;
     //applyColorMap(disp_mat, disp_color, cv::COLORMAP_JET);
@@ -398,17 +418,29 @@ void SaveDisparityCloud(const uint8* img_bytes,
     const sint32& height, 
     const std::string& path)
 {
+    std::string temp;
+    std::string path_disp_cloud_txt;
+
+    if (DATASETS == "RS") {
+
+        temp = path;
+        path_disp_cloud_txt = temp.replace(temp.find("ir_left.bmp"), 11, "disp_cloud_SGM.txt");
+    }
+    else if (DATASETS == "UE4") {
+
+        temp = path;
+        path_disp_cloud_txt = temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt");
+    }
 
     // 保存视差点云(x,y,disp,r,g,b)
     FILE* fp_disp_cloud = nullptr;
-    std::string temp = path;
     if (DATASETS == "RS") {
 
-        fopen_s(&fp_disp_cloud, temp.replace(temp.find("ir_left.bmp"), 11, "disp_cloud_SGM.txt").c_str(), "w");
+        fopen_s(&fp_disp_cloud, path_disp_cloud_txt.c_str(), "w");
     }
     else if(DATASETS == "UE4") {
 
-        fopen_s(&fp_disp_cloud, temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt").c_str(), "w");
+        fopen_s(&fp_disp_cloud, path_disp_cloud_txt.c_str(), "w");
     }
     if (fp_disp_cloud) {
         for (sint32 i = 0; i < height; i++) {
@@ -469,9 +501,9 @@ int main(int argv, char** argc)
     //    return -1;
     //}
     //std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
-    std::string folder_path = "D:/Code/GitHub/3D-Sensors/RealSenseTest/Material/Static/IMU Recalibrated";
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/Static/IMU Recalibrated";
 
-    std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
+    //std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
 
     //SGMFromImageName(folder_path, image_name);
 
@@ -482,7 +514,7 @@ int main(int argv, char** argc)
         
             string this_image_name = strip(split(item, "/").back(), "ir_left.bmp");
 
-            std::cout << this_image_name << std::endl;
+            //std::cout << this_image_name << std::endl;
             SGMFromImageName(folder_path, this_image_name);
         }
     }
