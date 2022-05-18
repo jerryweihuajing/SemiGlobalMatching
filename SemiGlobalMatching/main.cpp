@@ -175,8 +175,6 @@ vector<string> VectorFilesPath(string& folder_path) {
 
 int SGMFromImageName(std::string folder_path, std::string image_name) {
 
-    cout << image_name << endl;
-
     std::string image_name_left;
     std::string image_name_right;
     std::string image_name_color;
@@ -500,21 +498,31 @@ int main(int argv, char** argc)
     //    std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
     //    return -1;
     //}
-    //std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
-    std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/Static/IMU Recalibrated";
+   //std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/StepByStep";
 
     //std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
 
     //SGMFromImageName(folder_path, image_name);
 
-    for (const auto & item : VectorFilesPath(folder_path)) {
+    string string_to_find;
+
+    if (DATASETS == "RS") {
+
+        string_to_find = "ir_left.bmp";
+    }
+    else if (DATASETS == "UE4") {
+
+        string_to_find = "left.bmp";
+    }
+    for (const auto& item : VectorFilesPath(folder_path)) {
 
         //在string中寻找sub_string
-        if (item.find("left.bmp") != string::npos) {
-        
-            string this_image_name = strip(split(item, "/").back(), "ir_left.bmp");
+        if (item.find(string_to_find) != string::npos) {
 
-            //std::cout << this_image_name << std::endl;
+            string this_image_name = strip(split(item, "/").back(), string_to_find) + "mm";
+
+            std::cout << this_image_name << std::endl;
             SGMFromImageName(folder_path, this_image_name);
         }
     }
