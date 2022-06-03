@@ -20,8 +20,8 @@ using namespace std::chrono;
 using namespace std;
 using namespace cv;
 
-std::string DATASETS = "RS";
-//string DATASETS = "UE4";
+//std::string DATASETS = "RS";
+string DATASETS = "UE4";
 
 #define LEFTSTRIP 0
 #define RIGHTSTRIP 1
@@ -181,9 +181,9 @@ int SGMFromImageName(std::string folder_path, std::string image_name) {
 
     if (DATASETS == "UE4") {
 
-        image_name_left = image_name + "_left.bmp";
-        image_name_right = image_name + "_right.bmp";
-        image_name_color = image_name + "_left.bmp";
+        image_name_left = image_name + "_color_L.bmp";
+        image_name_right = image_name + "_color_R.bmp";
+        image_name_color = image_name + "_color_L.bmp";
     }
     else if (DATASETS == "RS") {
 
@@ -366,10 +366,10 @@ void SaveDisparityMap(const float32* disp_map,
     else if (DATASETS == "UE4") {
 
         temp = path;
-        path_disp_map_tiff = temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.tiff");
+        path_disp_map_tiff = temp.replace(temp.find("color_L.bmp"), 11, "disp_map_SGM.tiff");
 
         temp = path;
-        path_disp_map_txt = temp.replace(temp.find("left.bmp"), 8, "disp_map_SGM.txt");
+        path_disp_map_txt = temp.replace(temp.find("color_L.bmp"), 11, "disp_map_SGM.txt");
     }
 
     // 保存视差图
@@ -427,7 +427,7 @@ void SaveDisparityCloud(const uint8* img_bytes,
     else if (DATASETS == "UE4") {
 
         temp = path;
-        path_disp_cloud_txt = temp.replace(temp.find("left.bmp"), 8, "disp_cloud_SGM.txt");
+        path_disp_cloud_txt = temp.replace(temp.find("color_L.bmp"), 11, "disp_cloud_SGM.txt");
     }
 
     // 保存视差点云(x,y,disp,r,g,b)
@@ -498,8 +498,8 @@ int main(int argv, char** argc)
     //    std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
     //    return -1;
     //}
-   //std::string folder_path = "D:/Code/GitHub/3D-Sensors-And-Algorithms-Group/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
-    std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/StepByStep";
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    //std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/StepByStep";
 
     //std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
 
@@ -513,16 +513,17 @@ int main(int argv, char** argc)
     }
     else if (DATASETS == "UE4") {
 
-        string_to_find = "left.bmp";
+        string_to_find = "color_L.bmp";
     }
     for (const auto& item : VectorFilesPath(folder_path)) {
 
         //在string中寻找sub_string
         if (item.find(string_to_find) != string::npos) {
 
-            string this_image_name = strip(split(item, "/").back(), string_to_find) + "mm";
+            string this_image_name = strip(split(item, "/").back(), string_to_find);
 
             std::cout << this_image_name << std::endl;
+
             SGMFromImageName(folder_path, this_image_name);
         }
     }
