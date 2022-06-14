@@ -20,8 +20,8 @@ using namespace std::chrono;
 using namespace std;
 using namespace cv;
 
-//std::string DATASETS = "RS";
-string DATASETS = "UE4";
+std::string DATASETS = "RS";
+//string DATASETS = "UE4";
 
 #define LEFTSTRIP 0
 #define RIGHTSTRIP 1
@@ -498,9 +498,10 @@ int main(int argv, char** argc)
     //    std::cout << "参数过少，请至少指定左右影像路径！" << std::endl;
     //    return -1;
     //}
-    std::string folder_path = "D:/Code/GitHub/3D-Sensors/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
+    //std::string folder_path = "D:/Code/GitHub/3D-Sensors/Datasets-Simulation-UE4/Outcome/ArchvizCollectionPackage/datasets";
     //std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/StepByStep";
-
+    std::string folder_path = "D:/Code/GitHub/3D-Sensors/3D-Sensor-Evaluation/Material/RealSense/Static/IMU Recalibrated";
+   
     //std::string image_name = "x-128_y0295_z0180_roll0000_pitch0000_yaw0180";
 
     //SGMFromImageName(folder_path, image_name);
